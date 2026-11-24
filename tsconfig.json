@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "types": [
+            "node"
+        ]
+    }
+    //akashkhaparde34@gmail.com
+    // Gitpass@34.com
+}

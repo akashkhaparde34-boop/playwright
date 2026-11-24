@@ -1,0 +1,227 @@
+hi my name is akash 
+
+what is difference in to be and to match
+toBe vs toMatch
+                               to Be	                                     to Match
+Compares	 Exact equality (Object.is)	                             A regex pattern or substring
+Works on	Any value (string, number, boolean, object reference)	     Strings only
+Case	        Case-sensitive	                                             Case-insensitive if you use /i
+Partial match	No, must be identical	                                     Yes, unless you anchor with ^ and $
+ex.             expect(dialog.type()).toBe('confirm');                       expect(dialog. message()).toMatch(/confirm/i);
+
+------------------------------------
+Related matchers
+
+Matcher	        Use
+toBe		Strict equality (primitives, same object reference)
+toEqual		Deep equality (objects and arrays with the same content)
+toContain	String contains substring, or array contains item (case-sensitive)
+toMatch		String matches regex
+------------------------------------------
+What is a fixture?
+
+A fixture is a pre-configured resource that Playwright sets up before your test runs and tears down after. You request it by naming it in the test function’s parameters.
+
+The page fixture
+
+page is the built-in fixture that gives each test a fresh, isolated browser tab (a Page object).
+
+ex.ts
+import { test, expect } from '@playwright/test';
+
+test('homepage has title', async ({ page }) => {
+  await page.goto('https://playwright.dev');
+  await expect(page).toHaveTitle(/Playwright/);
+});
+
+Here { page } is destructured from the fixtures object. Playwright automatically:
+
+Launches a browser (if not already running)
+Creates a new browser context (clean cookies, storage, cache)
+Opens a new page in it
+Passes it to your test
+Closes everything after the test finishes
+Why it’s useful
+Isolation: every test gets a fresh page and context, so tests don’t affect each other
+No boilerplate: no manual browser.newPage() or page.close()
+On-demand: only fixtures you list are created
+
+Other built-in fixtures
+Fixture				Purpose
+page				Isolated page for the test
+context				Isolated browser context
+browser				Shared browser instance
+request				API testing (APIRequestContext)
+browserName			Current browser name
+
+
+--The simple analogy
+
+Think of a browser as a whole Chrome app, a browser context as a separate user profile (or incognito window) inside it, and a page as a single tab inside that window.
+
+Browser (Chrome app)
+ ├── Context 1 (user A's incognito window)
+ │     ├── Page (tab 1)
+ │     └── Page (tab 2)
+ └── Context 2 (user B's incognito window)
+       └── Page (tab 1)
+1. Browser
+The actual browser program (Chromium, Firefox, WebKit) that Playwright launches.
+Heavy to start, so it’s launched once and shared.
+In tests: the browser fixture.
+2. Browser context
+An isolated session inside the browser, like a fresh incognito window.
+Has its own cookies, local storage, and login session.
+Fast to create (much cheaper than launching a new browser).
+Contexts can’t see each other’s data.
+In tests: the context fixture.
+
+Use case: log in as an admin in context 1 and as a normal user in context 2, at the same time, without their sessions mixing.
+
+3. Page
+A single tab where you actually do things: goto, click, fill.
+Always belongs to one context.
+In tests: the page fixture.
+What “fixture” means here
+
+A fixture is something Playwright creates for you before the test and cleans up after. You just ask for it in the test parameters:
+
+ex.
+test("example", async ({ page }) => {
+  await page.goto("https://www.saucedemo.com/");
+});
+
+Behind the scenes Playwright did this for you:
+
+Launched the browser
+Created a new context
+Opened a new page
+Ran your test
+Closed everything.
+
+Which fixture to use
+
+You need					Use		You manage
+One tab, normal test				{ page }	Nothing
+Control the session (cookies, permissions)	{ context }	Nothing
+Multiple users or sessions in one test		{ browser }	Create and close contexts yourself
+
+Key point
+Each test gets its own fresh context and page, so tests don’t affect each other. That’s why you rarely need chromium.launch() manually inside Playwright tests.
+
+------------------------------------------------------------------------------------
+
+What is emulation?
+
+Emulation means making the browser pretend to be something else: a phone, a different location, a dark-mode user, an offline device. You test how your app behaves without needing the real device or environment.
+
+What you can emulate
+
+Emulate				Example use
+
+Device (mobile/tablet)		Check responsive layout on iPhone
+Viewport size			Test a specific screen width
+Geolocation			Test “near me” features
+Locale / language		Test French or Hindi UI
+Timezone			Test date/time display
+Permissions			Allow or deny camera, location, notifications
+Color scheme			Dark or light mode
+Offline mode			Test no-network behavior
+User agent			Make the site think it’s a different browser
+1. Device emulation
+
+Playwright has a built-in list of devices. One setting changes viewport, user agent, touch support, and device pixel ratio together.
+
+ts
+import { test, expect, devices } from "@playwright/test";
+
+test.use({ ...devices["iPhone 13"] });
+
+test("mobile view", async ({ page }) => {
+  await page.goto("https://www.saucedemo.com/");
+});
+
+2. Viewport
+ts
+test.use({ viewport: { width: 375, height: 667 } });
+
+3. Geolocation, locale, timezone, permissions
+
+Emulation settings are applied on the context, which is why contexts matter:
+
+ts
+test.use({
+  geolocation: { latitude: 19.0760, longitude: 72.8777 }, // Mumbai
+  permissions: ["geolocation"],
+  locale: "hi-IN",
+  timezoneId: "Asia/Kolkata",
+});
+4. Color scheme
+ts
+test.use({ colorScheme: "dark" });
+5. Offline mode
+ts
+test("offline behavior", async ({ page, context }) => {
+  await page.goto("https://www.saucedemo.com/");
+  await context.setOffline(true);
+  // now try an action and assert the error message
+});
+6. In the config file (apply to all tests)
+ts
+// playwright.config.ts
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  projects: [
+    { name: "Desktop Chrome", use: { ...devices["Desktop Chrome"] } },
+    { name: "iPhone 13", use: { ...devices["iPhone 13"] } },
+  ],
+});
+
+This runs your whole suite once per device.
+
+Using it manually with a context
+
+If you create contexts yourself (like in your earlier code):
+
+ts
+const context = await browser.newContext({
+  ...devices["iPhone 13"],
+  geolocation: { latitude: 19.0760, longitude: 72.8777 },
+  permissions: ["geolocation"],
+});
+const page = await context.newPage();
+
+
+My code :
+
+import { test, expect, devices } from "@playwright/test"
+
+test("emulation", async ({ browser }) => {
+
+    const context = await browser.newContext(
+        {
+           ...devices['Pixel 5'],
+
+            permissions: [
+                'geolocation',
+                'microphone',
+                'notifications'
+            ],
+            locale: "Hindi ",  // For english - "en-US"
+            //viewport: { width: 1000, height: 200 },
+            ignoreHTTPSErrors: true,
+
+        })   // to check mobile view
+    const page = await context.newPage()
+    await page.goto("https://www.booking.com/")
+    await page.waitForTimeout(5000)
+    await page.pause()
+})
+
+Important limitation
+
+Emulation is a simulation, not the real thing. It’s great for layout and logic checks, but it won’t catch real-device issues like actual Safari rendering bugs or hardware behavior. For those, use real devices or a cloud device farm.
+
+
+-----------------------------------------------------------------------------------------------------
